@@ -2,7 +2,9 @@
 
 Small, production oriented client for [Supaship](https://supaship.com) feature flags. It mirrors the public behavior of [`@supashiphq/javascript-sdk`](https://www.npmjs.com/package/@supashiphq/javascript-sdk) (`SupaClient`): same default endpoints, request shape, retry policy, timeouts, sensitive-context hashing, and fallback rules when the API is unavailable.
 
-**Runtime:** Java 11 or newer. **Dependencies:** [Gson](https://github.com/google/gson) only (JSON). HTTP uses `java.net.http`.
+**Runtime:** Java 11 or newer (bytecode 11; use a Java 11+ target in Kotlin too). **Dependencies:** [Gson](https://github.com/google/gson) (JSON) and [JetBrains Annotations](https://github.com/JetBrains/java-annotations) (small JAR; helps Kotlin null-safety). HTTP uses `java.net.http`.
+
+**Kotlin:** You can depend on this artifact from any JVM Kotlin project—no Kotlin-specific module is required. Public API is annotated with `@NotNull` / `@Nullable` for Kotlin. See [Kotlin usage](#kotlin-usage).
 
 Browser only features from the JS SDK (for example the toolbar plugin) are not applicable here.
 
@@ -27,6 +29,36 @@ dependencies {
     implementation("com.supaship:supaship-sdk:1.0.0")
 }
 ```
+
+Ensure the Kotlin/JVM target is **11 or newer** (for example in `kotlin { jvmToolchain(11) }` or matching `JavaPluginExtension`).
+
+### Kotlin usage
+
+Use the same types as in Java; `CompletableFuture` can be blocked with `.get()`, or adapted with coroutines:
+
+```kotlin
+import com.supaship.SupaClient
+import com.supaship.SupaClientConfig
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.runBlocking
+
+fun main() = runBlocking {
+    val client = SupaClient(
+        SupaClientConfig.builder()
+            .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
+            .environment("production")
+            .features(mapOf("dark-mode" to false, "max-items" to 10L))
+            .context(mapOf("region" to "eu"))
+            .build()
+    )
+
+    val dark = client.getFeature("dark-mode").await() as Boolean
+    val batch = client.getFeatures(listOf("dark-mode", "max-items")).await()
+    client.updateContext(mapOf("plan" to "pro"), mergeWithExisting = true)
+}
+```
+
+The `await()` example needs `kotlinx-coroutines-core` and `kotlinx-coroutines-jdk8` on your classpath (`implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.8.1")` or newer). Without coroutines, use `client.getFeature("dark-mode").get()` instead.
 
 ## Quick start
 

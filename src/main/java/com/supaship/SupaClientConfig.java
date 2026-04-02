@@ -1,5 +1,8 @@
 package com.supaship;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,36 +36,44 @@ public final class SupaClientConfig {
         this.listeners = Collections.unmodifiableList(new ArrayList<>(b.listeners));
     }
 
+    @NotNull
     public static Builder builder() {
         return new Builder();
     }
 
+    @NotNull
     public String sdkKey() {
         return sdkKey;
     }
 
+    @NotNull
     public String environment() {
         return environment;
     }
 
     /** Fallback values keyed by feature name (same role as {@code features} in the JS SDK). */
+    @NotNull
     public Map<String, Object> features() {
         return features;
     }
 
     /** Default evaluation context merged into each request unless overridden per call. */
+    @NotNull
     public Map<String, Object> context() {
         return context;
     }
 
+    @NotNull
     public Set<String> sensitiveContextProperties() {
         return sensitiveContextProperties;
     }
 
+    @NotNull
     public NetworkConfig networkConfig() {
         return networkConfig;
     }
 
+    @NotNull
     public List<SupaClientListener> listeners() {
         return listeners;
     }
@@ -77,17 +88,20 @@ public final class SupaClientConfig {
         private NetworkConfig networkConfig;
         private final List<SupaClientListener> listeners = new ArrayList<>();
 
-        public Builder sdkKey(String sdkKey) {
+        @NotNull
+        public Builder sdkKey(@Nullable String sdkKey) {
             this.sdkKey = sdkKey;
             return this;
         }
 
-        public Builder environment(String environment) {
+        @NotNull
+        public Builder environment(@Nullable String environment) {
             this.environment = environment;
             return this;
         }
 
-        public Builder features(Map<String, ?> features) {
+        @NotNull
+        public Builder features(@Nullable Map<String, ?> features) {
             this.features.clear();
             if (features != null) {
                 for (Map.Entry<String, ?> e : features.entrySet()) {
@@ -97,7 +111,8 @@ public final class SupaClientConfig {
             return this;
         }
 
-        public Builder context(Map<String, ?> context) {
+        @NotNull
+        public Builder context(@Nullable Map<String, ?> context) {
             if (context == null) {
                 this.context = null;
                 return this;
@@ -109,7 +124,8 @@ public final class SupaClientConfig {
             return this;
         }
 
-        public Builder sensitiveContextProperties(Set<String> sensitiveContextProperties) {
+        @NotNull
+        public Builder sensitiveContextProperties(@Nullable Set<String> sensitiveContextProperties) {
             this.sensitiveContextProperties.clear();
             if (sensitiveContextProperties != null) {
                 this.sensitiveContextProperties.addAll(sensitiveContextProperties);
@@ -117,18 +133,21 @@ public final class SupaClientConfig {
             return this;
         }
 
-        public Builder networkConfig(NetworkConfig networkConfig) {
+        @NotNull
+        public Builder networkConfig(@Nullable NetworkConfig networkConfig) {
             this.networkConfig = networkConfig;
             return this;
         }
 
-        public Builder addListener(SupaClientListener listener) {
+        @NotNull
+        public Builder addListener(@Nullable SupaClientListener listener) {
             if (listener != null) {
                 this.listeners.add(listener);
             }
             return this;
         }
 
+        @NotNull
         public SupaClientConfig build() {
             if (sdkKey == null || sdkKey.isBlank()) {
                 throw new IllegalStateException("sdkKey is required");

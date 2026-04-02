@@ -1,6 +1,10 @@
 package com.supaship;
 
 import com.supaship.internal.AsyncRetry;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -25,6 +29,8 @@ import java.util.stream.Collectors;
  * when the network fails.
  *
  * <p>Requires Java 11+ ({@link java.net.http.HttpClient}) and Gson for JSON request/response bodies.
+ *
+ * <p>Safe to use from Kotlin; nullability is annotated for Kotlin interop.
  */
 public final class SupaClient {
 
@@ -38,7 +44,7 @@ public final class SupaClient {
     private final List<SupaClientListener> listeners;
     private final String clientId;
 
-    public SupaClient(SupaClientConfig config) {
+    public SupaClient(@NotNull SupaClientConfig config) {
         Objects.requireNonNull(config, "config");
         this.sdkKey = config.sdkKey();
         this.environment = config.environment();
@@ -51,11 +57,12 @@ public final class SupaClient {
     }
 
     /** Stable per-instance id (same idea as the JS client for listeners/telemetry). */
+    @NotNull
     public String clientId() {
         return clientId;
     }
 
-    public void updateContext(Map<String, ?> context, boolean mergeWithExisting) {
+    public void updateContext(@Nullable Map<String, ?> context, boolean mergeWithExisting) {
         Map<String, ?> toApply = context == null ? Map.of() : context;
         Map<String, Object> oldSnapshot;
         Map<String, Object> newSnapshot;
@@ -78,6 +85,7 @@ public final class SupaClient {
         }
     }
 
+    @NotNull
     public Map<String, Object> getContext() {
         synchronized (contextLock) {
             return new HashMap<>(defaultContext);
@@ -85,20 +93,26 @@ public final class SupaClient {
     }
 
     /** Fallback value from the configuration map for this feature. */
-    public Object getFeatureFallback(String featureName) {
+    @Nullable
+    public Object getFeatureFallback(@NotNull String featureName) {
         return featureDefinitions.get(featureName);
     }
 
-    public CompletableFuture<Object> getFeature(String featureName) {
+    @NotNull
+    public CompletableFuture<@Nullable Object> getFeature(@NotNull String featureName) {
         return getFeature(featureName, null);
     }
 
-    public CompletableFuture<Object> getFeature(String featureName, Map<String, ?> contextOverride) {
+    @NotNull
+    public CompletableFuture<@Nullable Object> getFeature(
+            @NotNull String featureName, @Nullable Map<String, ?> contextOverride) {
         List<String> one = Collections.singletonList(featureName);
         return getFeatures(one, contextOverride).thenApply(m -> m.get(featureName));
     }
 
-    public CompletableFuture<Map<String, Object>> getFeatures(List<String> featureNames) {
+    @NotNull
+    public CompletableFuture<@NotNull Map<String, Object>> getFeatures(
+            @NotNull List<String> featureNames) {
         return getFeatures(featureNames, null);
     }
 
@@ -107,8 +121,9 @@ public final class SupaClient {
      * values from the configured feature map (same behavior as the JS SDK). If {@code featureNames}
      * is empty, completes immediately with an empty map (no HTTP call).
      */
-    public CompletableFuture<Map<String, Object>> getFeatures(
-            List<String> featureNames, Map<String, ?> contextOverride) {
+    @NotNull
+    public CompletableFuture<@NotNull Map<String, Object>> getFeatures(
+            @NotNull List<String> featureNames, @Nullable Map<String, ?> contextOverride) {
         List<String> names =
                 featureNames.stream().filter(Objects::nonNull).collect(Collectors.toList());
         if (names.isEmpty()) {
