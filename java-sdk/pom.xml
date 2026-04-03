@@ -7,14 +7,26 @@
     <parent>
         <groupId>com.supaship</groupId>
         <artifactId>supaship-sdks</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>supaship-sdk</artifactId>
     <packaging>jar</packaging>
 
-    <name>Supaship SDK</name>
+    <name>Supaship SDK for Java</name>
     <description>Lightweight JVM client for Supaship feature flags (Java 11+, Kotlin)</description>
+    <url>https://github.com/SupashipHQ/java-sdk</url>
+
+    <scm>
+        <connection>scm:git:https://github.com/SupashipHQ/java-sdk.git</connection>
+        <developerConnection>scm:git:git@github.com:SupashipHQ/java-sdk.git</developerConnection>
+        <url>https://github.com/SupashipHQ/java-sdk</url>
+    </scm>
+
+    <properties>
+        <maven.deploy.skip>false</maven.deploy.skip>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -34,6 +46,31 @@
 
     <build>
         <plugins>
+            <!-- Consumer POM on Central has no parent reference; dependency versions are inlined -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -62,7 +99,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <doclint>none</doclint>
                     <quiet>true</quiet>
                 </configuration>
                 <executions>
@@ -77,4 +113,36 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

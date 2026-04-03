@@ -96,7 +96,7 @@ Add a **profile** `-P release` so day to day `mvn test` does not require GPG.
 
 ## 6. First release (high level)
 
-1. Set **release version** in `pom.xml` (remove `-SNAPSHOT`), for example `1.0.0`.
+1. Set **release version** in the **root** `pom.xml` property **`revision`** (remove `-SNAPSHOT`), for example `1.0.0`. All modules inherit this version; you can instead pass **`-Drevision=…`** on the Maven command line for a one-off release build.
 2. Ensure `CHANGES` / git tag strategy is decided (`v1.0.0`).
 3. Run locally:
 
@@ -110,22 +110,22 @@ Add a **profile** `-P release` so day to day `mvn test` does not require GPG.
    mvn clean verify -P release
    ```
 
-4. **Deploy** (from the repository root; the reactor publishes the parent POM `com.supaship:supaship-sdks` and the library `com.supaship:supaship-sdk`):
+4. **Deploy** (from the repository root). Only **library modules** are uploaded: the aggregator POM `com.supaship:supaship-sdks` is skipped (`maven.deploy.skip`). Each published module’s **flattened** `pom.xml` is deployed (no parent reference on Central). The Central Publishing plugin is configured with **`autoPublish`** so a valid deployment can finish without a manual “release” click in the portal (you can still confirm status in the [Central Portal](https://central.sonatype.com/) if you want).
 
    ```bash
    mvn clean deploy -P release
    ```
 
-5. In the **Sonatype portal** (or Nexus UI if legacy): **close** the staging repository, **release** it, wait until artifacts propagate to **Maven Central** (often tens of minutes the first time).
+5. Wait until artifacts propagate to **Maven Central** (often tens of minutes the first time). If you disabled automatic publishing or validation fails, use the portal to fix or publish the deployment.
 
-6. Verify in a browser: `https://repo1.maven.org/maven2/com/supaship/supaship-sdk/1.0.0/` (adjust `groupId` path: `com.supaship` → `com/supaship`). The parent POM lives under `https://repo1.maven.org/maven2/com/supaship/supaship-sdks/<version>/`.
+6. Verify in a browser: `https://repo1.maven.org/maven2/com/supaship/supaship-sdk/1.0.0/` (adjust `groupId` path: `com.supaship` → `com/supaship`).
 
 ## 7. Later releases (updates)
 
-1. **Bump version** in `pom.xml`, for example `1.0.1` or `1.1.0`.
+1. **Bump** the **`revision`** property in the **root** `pom.xml` (or use **`-Drevision=…`**), for example `1.0.1` or `1.1.0`.
 2. Commit and **tag** (`git tag v1.0.1`).
 3. Run `mvn clean deploy -P release` again.
-4. Close / release staging as before.
+4. Confirm the deployment in the Central Portal if needed (automatic publishing is enabled in the project POM).
 
 **Semantic versioning** (recommended):
 

@@ -14,7 +14,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Serializes/parses the Supaship features evaluate request and response using Gson. */
+/**
+ * Gson helpers for the Supaship <em>features evaluate</em> JSON request body and response envelope.
+ *
+ * <p>Request shape: {@code { "environment", "features": [...], "context": { ... } }}.
+ * Response shape: {@code { "features": { "name": { "variation": ... } } }}.
+ */
 final class FeatureEvaluateJson {
 
     private static final Gson GSON =
@@ -22,6 +27,12 @@ final class FeatureEvaluateJson {
 
     private FeatureEvaluateJson() {}
 
+    /**
+     * @param environment   environment name
+     * @param featureNames  list of feature keys to evaluate
+     * @param context       context object (may contain hashed sensitive fields)
+     * @return JSON POST body for the evaluate endpoint
+     */
     static String buildEvaluateRequest(
             String environment, List<String> featureNames, Map<String, Object> context) {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -32,8 +43,13 @@ final class FeatureEvaluateJson {
     }
 
     /**
-     * Parses {@code {"features":{"f":{"variation":...}}}} and returns map of feature name →
-     * variation value (Java representation).
+     * Parses {@code {"features":{"f":{"variation":...}}}} and returns a map of feature name to variation value
+     * (booleans, strings, numbers, lists, or nested maps as plain Java objects).
+     *
+     * @param json raw response body from a successful evaluate call
+     * @return ordered map of feature name to variation or {@code null} entries where the payload omits {@code variation}
+     * @throws IllegalArgumentException if the JSON root or {@code features} object is missing or malformed
+     * @throws JsonParseException        if the string is not valid JSON (propagated from Gson)
      */
     static Map<String, Object> parseEvaluateResponse(String json) {
         JsonElement rootEl;
