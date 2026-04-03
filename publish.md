@@ -110,7 +110,7 @@ Add a **profile** `-P release` so day to day `mvn test` does not require GPG.
    mvn clean verify -P release
    ```
 
-4. **Deploy**:
+4. **Deploy** (from the repository root; the reactor publishes the parent POM `com.supaship:supaship-sdks` and the library `com.supaship:supaship-sdk`):
 
    ```bash
    mvn clean deploy -P release
@@ -118,7 +118,7 @@ Add a **profile** `-P release` so day to day `mvn test` does not require GPG.
 
 5. In the **Sonatype portal** (or Nexus UI if legacy): **close** the staging repository, **release** it, wait until artifacts propagate to **Maven Central** (often tens of minutes the first time).
 
-6. Verify in a browser: `https://repo1.maven.org/maven2/com/supaship/supaship-sdk/1.0.0/` (adjust `groupId` path: `com.supaship` → `com/supaship`).
+6. Verify in a browser: `https://repo1.maven.org/maven2/com/supaship/supaship-sdk/1.0.0/` (adjust `groupId` path: `com.supaship` → `com/supaship`). The parent POM lives under `https://repo1.maven.org/maven2/com/supaship/supaship-sdks/<version>/`.
 
 ## 7. Later releases (updates)
 

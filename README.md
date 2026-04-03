@@ -300,7 +300,7 @@ Very rare failures (for example if SHA-256 is unavailable) complete the `Complet
 mvn test package
 ```
 
-The resulting JAR is `target/supaship-sdk-*.jar`.
+The resulting JAR is `java-sdk/target/supaship-sdk-*.jar` (run Maven from the repository root).
 
 ## JavaScript parity (summary)
 
