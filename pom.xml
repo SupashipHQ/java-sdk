@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <name>Supaship SDKs</name>
-    <description>Multi-module build for Supaship JVM libraries</description>
+    <description>Multi-module build for Supaship SDKs</description>
     <url>https://github.com/SupashipHQ/java-sdk</url>
 
     <modules>
