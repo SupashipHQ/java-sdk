@@ -3,6 +3,9 @@ package com.supaship;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Objects;
@@ -10,10 +13,16 @@ import java.util.Objects;
 /**
  * JVM network layer: {@link NetworkSettings} plus a shared {@link HttpClient} for {@link SupashipClient}.
  *
- * <p>Build a {@link SupashipClient} with {@link #client(SupashipClientConfig)} after aligning
- * {@link SupashipClientConfig.Builder#networkSettings(NetworkSettings)} with {@link #settings()}.
+ * <p>Prefer {@link SupashipClient#create(SupashipClientConfig)} for the default client, or
+ * {@link SupashipClient#create(SupashipClientConfig, SupashipNetwork)} / {@link #client(SupashipClientConfig)}
+ * after aligning {@link SupashipClientConfig.Builder#networkSettings(NetworkSettings)} with {@link #settings()}.
  */
-public final class NetworkConfig {
+public final class NetworkConfig implements SupashipNetwork {
+
+    static {
+        SupashipClient.registerDefaultFactory(
+                c -> NetworkConfig.fromSettings(c.networkSettings()).client(c));
+    }
 
     private final NetworkSettings settings;
     private final HttpClient httpClient;
@@ -47,6 +56,7 @@ public final class NetworkConfig {
     /**
      * @throws IllegalArgumentException if {@code config.networkSettings()} does not equal {@link #settings()}
      */
+    @Override
     public @NotNull SupashipClient client(@NotNull SupashipClientConfig config) {
         Objects.requireNonNull(config, "config");
         if (!config.networkSettings().equals(settings)) {
@@ -61,6 +71,7 @@ public final class NetworkConfig {
 
         private final NetworkSettings.Builder inner = NetworkSettings.builder();
         private HttpClient httpClient;
+        private ProxySelector proxySelector;
 
         public @NotNull Builder featuresApiUrl(String featuresApiUrl) {
             inner.featuresApiUrl(featuresApiUrl);
@@ -83,14 +94,57 @@ public final class NetworkConfig {
             return this;
         }
 
+        /**
+         * HTTP(S) proxy for {@link HttpClient} (for example {@code http://proxy.corp.com:8080}). Ignored when
+         * {@link #httpClient(HttpClient)} is set.
+         */
+        public @NotNull Builder proxy(@Nullable String proxyUri) {
+            if (proxyUri == null || proxyUri.isBlank()) {
+                this.proxySelector = null;
+                return this;
+            }
+            URI u = URI.create(proxyUri);
+            String host = u.getHost();
+            if (host == null || host.isEmpty()) {
+                throw new IllegalArgumentException("proxy URI must include a host");
+            }
+            int port = u.getPort();
+            if (port < 0) {
+                if ("https".equalsIgnoreCase(u.getScheme())) {
+                    port = 443;
+                } else {
+                    port = 80;
+                }
+            }
+            this.proxySelector = ProxySelector.of(InetSocketAddress.createUnresolved(host, port));
+            return this;
+        }
+
+        /**
+         * Total HTTP attempts per evaluate call (including the first try). Uses the default SDK backoff between tries.
+         */
+        public @NotNull Builder retries(int maxAttempts) {
+            RetryConfig base = RetryConfig.defaultRetry();
+            inner.retry(new RetryConfig(true, maxAttempts, base.backoffMs()));
+            return this;
+        }
+
         public @NotNull Builder httpClient(@Nullable HttpClient httpClient) {
             this.httpClient = httpClient;
             return this;
         }
 
         public @NotNull NetworkConfig build() {
+            if (httpClient != null && proxySelector != null) {
+                throw new IllegalStateException("Set either httpClient or proxy, not both");
+            }
             NetworkSettings built = inner.build();
-            HttpClient client = httpClient != null ? httpClient : HttpClient.newHttpClient();
+            HttpClient client =
+                    httpClient != null
+                            ? httpClient
+                            : (proxySelector != null
+                                    ? HttpClient.newBuilder().proxy(proxySelector).build()
+                                    : HttpClient.newHttpClient());
             return new NetworkConfig(built, client);
         }
     }

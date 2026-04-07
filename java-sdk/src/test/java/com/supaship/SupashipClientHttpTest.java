@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("resource")
@@ -76,7 +78,7 @@ class SupashipClientHttpTest {
                         .features(features)
                         .networkSettings(net.settings())
                         .build();
-        SupashipClient client = net.client(cfg);
+        SupashipClient client = SupashipClient.create(cfg);
         Map<String, Object> out = client.getFeatures(List.of("dark-mode")).get();
         assertEquals(true, out.get("dark-mode"));
         String req = requestBody.get();
@@ -185,7 +187,7 @@ class SupashipClientHttpTest {
                         .sdkKey("k")
                         .environment("e")
                         .features(features)
-                        .context(ctx)
+                        .contextMap(ctx)
                         .sensitiveContextProperties(java.util.Set.of("email"))
                         .networkSettings(net.settings())
                         .build();
@@ -196,5 +198,49 @@ class SupashipClientHttpTest {
         assertTrue(
                 req.contains("544f5a10f875f4db5c5faef39c35d9a5b51123eeb5019e8bf1c65cb0b3d01cd9"),
                 req);
+    }
+
+    @Test
+    void createWithExplicitNetwork_isEquivalentToNetClient() throws Exception {
+        AtomicInteger posts = new AtomicInteger();
+        String baseUrl =
+                startWithHandler(
+                        ex -> {
+                            posts.incrementAndGet();
+                            byte[] body =
+                                    "{\"features\":{\"x\":{\"variation\":true}}}"
+                                            .getBytes(StandardCharsets.UTF_8);
+                            ex.getResponseHeaders().add("Content-Type", "application/json");
+                            ex.sendResponseHeaders(200, body.length);
+                            ex.getResponseBody().write(body);
+                            ex.close();
+                        });
+        NetworkConfig net =
+                NetworkConfig.builder()
+                        .featuresApiUrl(baseUrl)
+                        .retry(new RetryConfig(false, 1, 0))
+                        .build();
+        SupashipClientConfig cfg =
+                SupashipClientConfig.builder()
+                        .sdkKey("k")
+                        .environment("e")
+                        .features(Map.of("x", false))
+                        .networkSettings(net.settings())
+                        .build();
+        assertEquals(
+                true,
+                SupashipClient.create(cfg, net).getFeature("x").get());
+        assertEquals(1, posts.get());
+    }
+
+    @Test
+    void networkConfigBuilder_rejectsProxyAndHttpClientTogether() {
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        NetworkConfig.builder()
+                                .httpClient(HttpClient.newHttpClient())
+                                .proxy("http://proxy.corp.com:8080")
+                                .build());
     }
 }

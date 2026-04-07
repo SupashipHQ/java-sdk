@@ -10,7 +10,12 @@ import java.util.concurrent.ForkJoinPool;
  * Android-side network defaults (mirrors the JVM {@code com.supaship.NetworkConfig}): {@link NetworkSettings} plus
  * the {@link Executor} used to run blocking HTTP I/O (typically {@link java.net.HttpURLConnection}).
  */
-public final class AndroidSupashipNetwork {
+public final class AndroidSupashipNetwork implements SupashipNetwork {
+
+    static {
+        SupashipClient.registerDefaultFactory(
+                c -> AndroidSupashipNetwork.fromSettings(c.networkSettings()).client(c));
+    }
 
     private final NetworkSettings settings;
     private final Executor executor;
@@ -18,6 +23,11 @@ public final class AndroidSupashipNetwork {
     private AndroidSupashipNetwork(NetworkSettings settings, Executor executor) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.executor = Objects.requireNonNull(executor, "executor");
+    }
+
+    public static @NotNull AndroidSupashipNetwork fromSettings(@NotNull NetworkSettings settings) {
+        Objects.requireNonNull(settings, "settings");
+        return new AndroidSupashipNetwork(settings, ForkJoinPool.commonPool());
     }
 
     public static @NotNull Builder builder() {
@@ -35,6 +45,7 @@ public final class AndroidSupashipNetwork {
     /**
      * @throws IllegalArgumentException if {@code config.networkSettings()} does not equal {@link #settings()}
      */
+    @Override
     public @NotNull SupashipClient client(@NotNull SupashipClientConfig config) {
         Objects.requireNonNull(config, "config");
         if (!config.networkSettings().equals(settings)) {

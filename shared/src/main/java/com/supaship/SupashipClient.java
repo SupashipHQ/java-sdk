@@ -18,6 +18,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -25,12 +27,66 @@ import java.util.stream.Collectors;
  * the Supaship HTTP API with the same defaults (URLs, retry, timeout) and the same fallback rules
  * when the network fails.
  *
- * <p>Pass a platform {@link EvaluateTransport} ({@code java.net.http} on the JVM, {@link java.net.HttpURLConnection}-based
- * on Android, or a test double).
+ * <p>On the JVM or Android, prefer {@link #create(SupashipClientConfig)} or
+ * {@link #create(SupashipClientConfig, SupashipNetwork)}; use the
+ * {@link #SupashipClient(SupashipClientConfig, EvaluateTransport)} constructor with a custom
+ * {@link EvaluateTransport} for advanced cases.
  *
  * <p>Safe to use from Kotlin; nullability is annotated for Kotlin interop.
  */
 public final class SupashipClient {
+
+    private static final AtomicReference<Function<SupashipClientConfig, SupashipClient>> DEFAULT_FACTORY =
+            new AtomicReference<>();
+
+    /** Called from platform modules ({@code NetworkConfig}, {@code AndroidSupashipNetwork}). */
+    static void registerDefaultFactory(Function<SupashipClientConfig, SupashipClient> factory) {
+        DEFAULT_FACTORY.set(Objects.requireNonNull(factory, "factory"));
+    }
+
+    private static void ensurePlatformLoaded() {
+        ClassLoader cl = SupashipClient.class.getClassLoader();
+        try {
+            Class.forName("com.supaship.NetworkConfig", true, cl);
+        } catch (ClassNotFoundException | LinkageError ignored) {
+        }
+        try {
+            Class.forName("com.supaship.AndroidSupashipNetwork", true, cl);
+        } catch (ClassNotFoundException | LinkageError ignored) {
+        }
+    }
+
+    /**
+     * Creates a client with default platform HTTP ({@code java.net.http} on the JVM or
+     * {@code HttpURLConnection} on Android). Requires the {@code java-sdk} or {@code android-sdk}
+     * artifact so the matching module can register a factory.
+     */
+    @NotNull
+    public static SupashipClient create(@NotNull SupashipClientConfig config) {
+        Objects.requireNonNull(config, "config");
+        Function<SupashipClientConfig, SupashipClient> f = DEFAULT_FACTORY.get();
+        if (f == null) {
+            ensurePlatformLoaded();
+            f = DEFAULT_FACTORY.get();
+        }
+        if (f == null) {
+            throw new IllegalStateException(
+                    "SupashipClient.create(config) requires a platform SDK on the classpath "
+                            + "(java-sdk or android-sdk), or use create(config, SupashipNetwork).");
+        }
+        return f.apply(config);
+    }
+
+    /**
+     * Creates a client using an explicit network layer (for example a customized {@code NetworkConfig}).
+     */
+    @NotNull
+    public static SupashipClient create(
+            @NotNull SupashipClientConfig config, @NotNull SupashipNetwork network) {
+        Objects.requireNonNull(config, "config");
+        Objects.requireNonNull(network, "network");
+        return network.client(config);
+    }
 
     private final String sdkKey;
     private final String environment;

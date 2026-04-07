@@ -2,6 +2,8 @@
 
 JVM-compatible library (Java&nbsp;11 language level) for Android apps. Core types and `SupashipClient` live under `../shared` and are compiled into this artifact with an `HttpURLConnection`-based [`AndroidEvaluateTransport`](src/main/java/com/supaship/AndroidEvaluateTransport.java).
 
+For default URLs, timeout, and retry — with I/O on `ForkJoinPool.commonPool()` — you can use `SupashipClient.create(config)` after building `SupashipClientConfig`. Use [`AndroidSupashipNetwork`](src/main/java/com/supaship/AndroidSupashipNetwork.java) when you need a custom executor, endpoints, or retry policy.
+
 Do heavy work off the main thread: evaluation returns `CompletableFuture` but uses your executor (default is `ForkJoinPool.commonPool()`).
 
 ## Dependency (Maven)
@@ -18,6 +20,7 @@ Do heavy work off the main thread: evaluation returns `CompletableFuture` but us
 
 ```kotlin
 import com.supaship.AndroidSupashipNetwork
+import com.supaship.FeatureDefaults
 import com.supaship.SupashipClientConfig
 import kotlinx.coroutines.future.await
 import java.util.concurrent.Executors
@@ -31,7 +34,7 @@ val net = AndroidSupashipNetwork.builder()
 val config = SupashipClientConfig.builder()
     .sdkKey(BuildConfig.SUPASHIP_SDK_KEY)
     .environment("production")
-    .features(mapOf("new-onboarding" to false))
+    .defaults(FeatureDefaults.builder().feature("new-onboarding", false).build())
     .networkSettings(net.settings())
     .build()
 
@@ -45,6 +48,7 @@ suspend fun isOnboardingEnabled(): Boolean =
 
 ```java
 import com.supaship.AndroidSupashipNetwork;
+import com.supaship.FeatureDefaults;
 import com.supaship.SupashipClient;
 import com.supaship.SupashipClientConfig;
 
@@ -60,7 +64,7 @@ SupashipClientConfig config =
         SupashipClientConfig.builder()
                 .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
                 .environment("production")
-                .features(Map.of("new-onboarding", false))
+                .defaults(FeatureDefaults.builder().feature("new-onboarding", false).build())
                 .networkSettings(net.settings())
                 .build();
 

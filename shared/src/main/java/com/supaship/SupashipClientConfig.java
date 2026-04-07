@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /** Configuration for {@link SupashipClient}. Immutable after {@link Builder#build()}. */
@@ -122,8 +123,25 @@ public final class SupashipClientConfig {
             return this;
         }
 
+        /**
+         * Feature fallback values validated at build time. Replaces any previous {@link #features(Map)}.
+         */
         @NotNull
-        public Builder context(@Nullable Map<String, ?> context) {
+        public Builder defaults(@NotNull FeatureDefaults featureDefaults) {
+            Objects.requireNonNull(featureDefaults, "featureDefaults");
+            this.features.clear();
+            for (Map.Entry<String, Object> e : featureDefaults.asMap().entrySet()) {
+                this.features.put(e.getKey(), e.getValue());
+            }
+            return this;
+        }
+
+        /**
+         * Raw map entries for evaluation context. Prefer {@link #context(EvaluationContext)} when possible.
+         * Pass {@code null} to clear.
+         */
+        @NotNull
+        public Builder contextMap(@Nullable Map<String, ?> context) {
             if (context == null) {
                 this.context = null;
                 return this;
@@ -133,6 +151,15 @@ public final class SupashipClientConfig {
                 this.context.put(e.getKey(), e.getValue());
             }
             return this;
+        }
+
+        /**
+         * Sets evaluation context (replaces any previous {@link #contextMap(Map)}).
+         */
+        @NotNull
+        public Builder context(@NotNull EvaluationContext evaluationContext) {
+            Objects.requireNonNull(evaluationContext, "evaluationContext");
+            return contextMap(evaluationContext.asMap());
         }
 
         @NotNull
