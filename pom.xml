@@ -41,7 +41,7 @@
 
     <properties>
         <!-- Single version for every module; override: -Drevision=1.2.3 or edit here -->
-        <revision>0.1.0-SNAPSHOT</revision>
+        <revision>0.2.0-SNAPSHOT</revision>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>11</maven.compiler.release>
