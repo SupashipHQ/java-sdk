@@ -6,21 +6,21 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class SupaClientConfigTest {
+class SupashipClientConfigTest {
 
     @Test
     void builder_requires_sdkKey_and_environment() {
         assertThrows(
                 IllegalStateException.class,
                 () ->
-                        SupaClientConfig.builder()
+                        SupashipClientConfig.builder()
                                 .environment("prod")
                                 .features(Map.of("a", true))
                                 .build());
         assertThrows(
                 IllegalStateException.class,
                 () ->
-                        SupaClientConfig.builder()
+                        SupashipClientConfig.builder()
                                 .sdkKey("k")
                                 .features(Map.of("a", true))
                                 .build());

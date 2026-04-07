@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("resource")
-class SupaClientHttpTest {
+class SupashipClientHttpTest {
 
     private HttpServer server;
 
@@ -69,14 +69,14 @@ class SupaClientHttpTest {
                         .featuresApiUrl(baseUrl)
                         .retry(new RetryConfig(false, 1, 0))
                         .build();
-        SupaClientConfig cfg =
-                SupaClientConfig.builder()
+        SupashipClientConfig cfg =
+                SupashipClientConfig.builder()
                         .sdkKey("test-key")
                         .environment("staging")
                         .features(features)
                         .networkSettings(net.settings())
                         .build();
-        SupaClient client = net.client(cfg);
+        SupashipClient client = net.client(cfg);
         Map<String, Object> out = client.getFeatures(List.of("dark-mode")).get();
         assertEquals(true, out.get("dark-mode"));
         String req = requestBody.get();
@@ -105,14 +105,14 @@ class SupaClientHttpTest {
                         .featuresApiUrl(baseUrl)
                         .retry(new RetryConfig(false, 1, 0))
                         .build();
-        SupaClientConfig cfg =
-                SupaClientConfig.builder()
+        SupashipClientConfig cfg =
+                SupashipClientConfig.builder()
                         .sdkKey("k")
                         .environment("e")
                         .features(features)
                         .networkSettings(net.settings())
                         .build();
-        SupaClient client = net.client(cfg);
+        SupashipClient client = net.client(cfg);
         Map<String, Object> out = client.getFeatures(List.of("x")).get();
         assertEquals(false, out.get("x"));
     }
@@ -143,14 +143,14 @@ class SupaClientHttpTest {
                         .featuresApiUrl(baseUrl)
                         .retry(new RetryConfig(true, 3, 1L))
                         .build();
-        SupaClientConfig cfg =
-                SupaClientConfig.builder()
+        SupashipClientConfig cfg =
+                SupashipClientConfig.builder()
                         .sdkKey("k")
                         .environment("e")
                         .features(features)
                         .networkSettings(net.settings())
                         .build();
-        SupaClient client = net.client(cfg);
+        SupashipClient client = net.client(cfg);
         assertEquals(true, client.getFeature("f").get());
         assertEquals(2, hits.get());
     }
@@ -180,8 +180,8 @@ class SupaClientHttpTest {
                         .featuresApiUrl(baseUrl)
                         .retry(new RetryConfig(false, 1, 0))
                         .build();
-        SupaClientConfig cfg =
-                SupaClientConfig.builder()
+        SupashipClientConfig cfg =
+                SupashipClientConfig.builder()
                         .sdkKey("k")
                         .environment("e")
                         .features(features)
@@ -189,7 +189,7 @@ class SupaClientHttpTest {
                         .sensitiveContextProperties(java.util.Set.of("email"))
                         .networkSettings(net.settings())
                         .build();
-        SupaClient client = net.client(cfg);
+        SupashipClient client = net.client(cfg);
         assertEquals(1L, client.getFeature("f").get());
         String req = requestBody.get();
         assertNotNull(req);

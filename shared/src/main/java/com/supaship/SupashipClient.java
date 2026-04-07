@@ -21,7 +21,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
- * Supaship feature-flag client aligned with the JavaScript {@code SupaClient}: evaluates flags via
+ * Supaship feature-flag client aligned with the JavaScript SDK: evaluates flags via
  * the Supaship HTTP API with the same defaults (URLs, retry, timeout) and the same fallback rules
  * when the network fails.
  *
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  *
  * <p>Safe to use from Kotlin; nullability is annotated for Kotlin interop.
  */
-public final class SupaClient {
+public final class SupashipClient {
 
     private final String sdkKey;
     private final String environment;
@@ -40,14 +40,14 @@ public final class SupaClient {
     private final Set<String> sensitiveContextProperties;
     private final NetworkSettings network;
     private final EvaluateTransport transport;
-    private final List<SupaClientListener> listeners;
+    private final List<SupashipClientListener> listeners;
     private final String clientId;
 
     /**
-     * @param config    non-null client configuration from {@link SupaClientConfig.Builder#build()}
+     * @param config    non-null client configuration from {@link SupashipClientConfig.Builder#build()}
      * @param transport non-null HTTP implementation for evaluate POSTs
      */
-    public SupaClient(@NotNull SupaClientConfig config, @NotNull EvaluateTransport transport) {
+    public SupashipClient(@NotNull SupashipClientConfig config, @NotNull EvaluateTransport transport) {
         Objects.requireNonNull(config, "config");
         Objects.requireNonNull(transport, "transport");
         this.sdkKey = config.sdkKey();
@@ -80,7 +80,7 @@ public final class SupaClient {
             }
             newSnapshot = new HashMap<>(defaultContext);
         }
-        for (SupaClientListener listener : listeners) {
+        for (SupashipClientListener listener : listeners) {
             try {
                 listener.onContextUpdate(oldSnapshot, newSnapshot, "updateContext");
             } catch (Throwable ignored) {
@@ -131,7 +131,7 @@ public final class SupaClient {
         Map<String, Object> mergedContext = mergeContext(contextOverride);
         if (contextOverride != null && !contextOverride.isEmpty()) {
             Map<String, Object> defaultSnap = getContext();
-            for (SupaClientListener listener : listeners) {
+            for (SupashipClientListener listener : listeners) {
                 try {
                     listener.onContextUpdate(defaultSnap, new HashMap<>(mergedContext), "request");
                 } catch (Throwable ignored) {
@@ -140,7 +140,7 @@ public final class SupaClient {
             }
         }
 
-        for (SupaClientListener listener : listeners) {
+        for (SupashipClientListener listener : listeners) {
             try {
                 listener.beforeGetFeatures(Collections.unmodifiableList(names), mergedContext);
             } catch (Throwable ignored) {
@@ -164,7 +164,7 @@ public final class SupaClient {
                         retry.backoffMs(),
                         retry.enabled(),
                         ev -> {
-                            for (SupaClientListener listener : listeners) {
+                            for (SupashipClientListener listener : listeners) {
                                 try {
                                     listener.onRetryAttempt(
                                             ev.attempt(), ev.error(), ev.willRetry());
@@ -178,7 +178,7 @@ public final class SupaClient {
         return evaluated.handle(
                 (result, error) -> {
                     if (error == null) {
-                        for (SupaClientListener listener : listeners) {
+                        for (SupashipClientListener listener : listeners) {
                             try {
                                 listener.afterGetFeatures(result, mergedContext);
                             } catch (Throwable ignored) {
@@ -187,7 +187,7 @@ public final class SupaClient {
                         }
                         return result;
                     }
-                    for (SupaClientListener listener : listeners) {
+                    for (SupashipClientListener listener : listeners) {
                         try {
                             listener.onError(error, mergedContext);
                         } catch (Throwable ignored) {
@@ -198,7 +198,7 @@ public final class SupaClient {
                     for (String name : names) {
                         Object fb = featureDefinitions.get(name);
                         fallbacks.put(name, fb);
-                        for (SupaClientListener listener : listeners) {
+                        for (SupashipClientListener listener : listeners) {
                             try {
                                 listener.onFallbackUsed(name, fb, error);
                             } catch (Throwable ignored) {
@@ -218,7 +218,7 @@ public final class SupaClient {
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("Content-Type", "application/json");
         headers.put("Authorization", "Bearer " + sdkKey);
-        for (SupaClientListener listener : listeners) {
+        for (SupashipClientListener listener : listeners) {
             try {
                 listener.beforeRequest(url, body, headers);
             } catch (Throwable ignored) {
@@ -233,7 +233,7 @@ public final class SupaClient {
                 .thenApply(
                         response -> {
                             long durationMs = (System.nanoTime() - startNs) / 1_000_000L;
-                            for (SupaClientListener listener : listeners) {
+                            for (SupashipClientListener listener : listeners) {
                                 try {
                                     listener.afterResponse(response.statusCode(), durationMs);
                                 } catch (Throwable ignored) {

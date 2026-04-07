@@ -60,8 +60,8 @@ Replace `VERSION` with the [latest release](https://central.sonatype.com/artifac
 ## Quick Start
 ```java
 import com.supaship.NetworkConfig;
-import com.supaship.SupaClient;
-import com.supaship.SupaClientConfig;
+import com.supaship.SupashipClient;
+import com.supaship.SupashipClientConfig;
 
 import java.util.List;
 import java.util.Map;
@@ -77,14 +77,14 @@ public class Example {
         );
 
         // 2. Build config + JVM HttpClient transport (default URLs, timeout, retry)
-        SupaClientConfig config =
-            SupaClientConfig.builder()
+        SupashipClientConfig config =
+            SupashipClientConfig.builder()
                 .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
                 .environment("production")
                 .features(fallbacks)
                 .context(Map.of("region", "eu"))
                 .build();
-        SupaClient client =
+        SupashipClient client =
             NetworkConfig.fromSettings(config.networkSettings()).client(config);
 
         // 3. Evaluate a single flag (blocks until resolved)
@@ -105,7 +105,7 @@ public class Example {
 
 ## Configuration Reference
 
-Pass all options through `SupaClientConfig.builder()`:
+Pass all options through `SupashipClientConfig.builder()`:
 
 | Option | Type | Required | Description |
 |---|---|---|---|
@@ -115,9 +115,9 @@ Pass all options through `SupaClientConfig.builder()`:
 | `context` | `Map<String, Object>` | — | Default evaluation context merged into every request |
 | `sensitiveContextProperties` | `Set<String>` | — | Context keys whose values are hashed with SHA-256 before the request is sent |
 | `networkSettings` | `NetworkSettings` | — | URLs, per-request timeout, and retry policy (shared with Android) |
-| `addListener` | `SupaClientListener` | — | Lifecycle hooks: errors, retries, fallbacks, context updates |
+| `addListener` | `SupashipClientListener` | — | Lifecycle hooks: errors, retries, fallbacks, context updates |
 
-On the JVM, pass the same `NetworkSettings` into [`NetworkConfig`](java-sdk/src/main/java/com/supaship/NetworkConfig.java) (optional custom `HttpClient`) and call `network.client(config)` to obtain `SupaClient`.
+On the JVM, pass the same `NetworkSettings` into [`NetworkConfig`](java-sdk/src/main/java/com/supaship/NetworkConfig.java) (optional custom `HttpClient`) and call `network.client(config)` to obtain `SupashipClient`.
 
 ### Defaults
 
@@ -163,16 +163,16 @@ boolean dark = (Boolean) client
 
 ## Listeners
 
-`SupaClientListener` provides optional lifecycle hooks. All methods have default no-op implementations — implement only what you need.
+`SupashipClientListener` provides optional lifecycle hooks. All methods have default no-op implementations — implement only what you need.
 ```java
-import com.supaship.SupaClientConfig;
-import com.supaship.SupaClientListener;
+import com.supaship.SupashipClientConfig;
+import com.supaship.SupashipClientListener;
 
-SupaClientConfig config = SupaClientConfig.builder()
+SupashipClientConfig config = SupashipClientConfig.builder()
     .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
     .environment("production")
     .features(Map.of("dark-mode", false))
-    .addListener(new SupaClientListener() {
+    .addListener(new SupashipClientListener() {
 
         @Override
         public void onError(Throwable error, Map<String, ?> context) {
@@ -201,8 +201,8 @@ SupaClientConfig config = SupaClientConfig.builder()
 Use your own `java.net.http.HttpClient` to control TLS settings, proxy, connection pool, or HTTP version:
 ```java
 import com.supaship.NetworkConfig;
-import com.supaship.SupaClient;
-import com.supaship.SupaClientConfig;
+import com.supaship.SupashipClient;
+import com.supaship.SupashipClientConfig;
 
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
@@ -222,14 +222,14 @@ NetworkConfig network = NetworkConfig.builder()
     .featuresApiUrl("https://edge.supaship.com/v1/features")
     .build();
 
-SupaClientConfig config =
-    SupaClientConfig.builder()
+SupashipClientConfig config =
+    SupashipClientConfig.builder()
         .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
         .environment("production")
         .features(Map.of("dark-mode", false))
         .networkSettings(network.settings())
         .build();
-SupaClient client = network.client(config);
+SupashipClient client = network.client(config);
 ```
 
 ---
@@ -238,7 +238,7 @@ SupaClient client = network.client(config);
 
 ### Spring Boot
 
-Declare a single application-scoped `SupaClient` bean and inject it wherever needed.
+Declare a single application-scoped `SupashipClient` bean and inject it wherever needed.
 
 #### `application.properties`
 ```properties
@@ -249,8 +249,8 @@ supaship.environment=production
 #### Configuration class
 ```java
 import com.supaship.NetworkConfig;
-import com.supaship.SupaClient;
-import com.supaship.SupaClientConfig;
+import com.supaship.SupashipClient;
+import com.supaship.SupashipClientConfig;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -263,10 +263,10 @@ import java.util.Map;
 public class SupashipConfiguration {
 
     @Bean
-    public SupaClient supaClient(SupashipProps props) {
+    public SupashipClient supashipClient(SupashipProps props) {
         NetworkConfig network = NetworkConfig.builder().build();
-        SupaClientConfig config =
-            SupaClientConfig.builder()
+        SupashipClientConfig config =
+            SupashipClientConfig.builder()
                 .sdkKey(props.getSdkKey())
                 .environment(props.getEnvironment())
                 .features(Map.of(
@@ -294,7 +294,7 @@ public class SupashipConfiguration {
 
 #### Injecting into a service
 ```java
-import com.supaship.SupaClient;
+import com.supaship.SupashipClient;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -302,9 +302,9 @@ import java.util.Map;
 @Service
 public class CheckoutService {
 
-    private final SupaClient supaship;
+    private final SupashipClient supaship;
 
-    public CheckoutService(SupaClient supaship) {
+    public CheckoutService(SupashipClient supaship) {
         this.supaship = supaship;
     }
 
@@ -321,12 +321,12 @@ public class CheckoutService {
 
 ### Quarkus / Micronaut
 
-No framework-specific integration is required. Create one `SupaClient` instance at startup and expose it as a CDI bean or singleton:
+No framework-specific integration is required. Create one `SupashipClient` instance at startup and expose it as a CDI bean or singleton:
 ```java
 // Quarkus — ApplicationScoped CDI bean
 import com.supaship.NetworkConfig;
-import com.supaship.SupaClient;
-import com.supaship.SupaClientConfig;
+import com.supaship.SupashipClient;
+import com.supaship.SupashipClientConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 
@@ -337,9 +337,9 @@ public class SupashipProducer {
 
     @Produces
     @ApplicationScoped
-    public SupaClient supaClient() {
-        SupaClientConfig config =
-            SupaClientConfig.builder()
+    public SupashipClient supashipClient() {
+        SupashipClientConfig config =
+            SupashipClientConfig.builder()
                 .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
                 .environment("production")
                 .features(Map.of("feature-x", false))
@@ -349,7 +349,7 @@ public class SupashipProducer {
 }
 ```
 
-Then inject `SupaClient` into any resource or service with `@Inject`.
+Then inject `SupashipClient` into any resource or service with `@Inject`.
 
 ---
 
@@ -366,11 +366,11 @@ kotlin {
 #### Blocking (no coroutines needed)
 ```kotlin
 import com.supaship.NetworkConfig
-import com.supaship.SupaClient
-import com.supaship.SupaClientConfig
+import com.supaship.SupashipClient
+import com.supaship.SupashipClientConfig
 
 val config =
-    SupaClientConfig.builder()
+    SupashipClientConfig.builder()
         .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
         .environment("production")
         .features(mapOf("dark-mode" to false, "max-items" to 10L))
@@ -390,14 +390,14 @@ implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.8.1")
 ```
 ```kotlin
 import com.supaship.NetworkConfig
-import com.supaship.SupaClient
-import com.supaship.SupaClientConfig
+import com.supaship.SupashipClient
+import com.supaship.SupashipClientConfig
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
     val config =
-        SupaClientConfig.builder()
+        SupashipClientConfig.builder()
             .sdkKey(System.getenv("SUPASHIP_SDK_KEY"))
             .environment("production")
             .features(mapOf("dark-mode" to false, "max-items" to 10L))
@@ -418,7 +418,7 @@ fun main() = runBlocking {
 The SDK is designed to never block your application if the Supaship API is unavailable.
 
 - If a request fails after all retry attempts, `getFeature` / `getFeatures` **complete normally** with the values from your configured `features` fallback map — no exception is thrown.
-- Use `SupaClientListener.onError` and `onFallbackUsed` to observe when fallbacks are active.
+- Use `SupashipClientListener.onError` and `onFallbackUsed` to observe when fallbacks are active.
 - In rare cases where the JVM itself is in a degraded state (e.g. SHA-256 unavailable), the `CompletableFuture` completes exceptionally with `SupashipException`. Normal HTTP and parsing errors always follow the fallback path.
 ```java
 client.getFeature("dark-mode")

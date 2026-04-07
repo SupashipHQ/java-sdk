@@ -10,12 +10,12 @@ import java.util.concurrent.ForkJoinPool;
  * Android-side network defaults (mirrors the JVM {@code com.supaship.NetworkConfig}): {@link NetworkSettings} plus
  * the {@link Executor} used to run blocking HTTP I/O (typically {@link java.net.HttpURLConnection}).
  */
-public final class AndroidSupaNetwork {
+public final class AndroidSupashipNetwork {
 
     private final NetworkSettings settings;
     private final Executor executor;
 
-    private AndroidSupaNetwork(NetworkSettings settings, Executor executor) {
+    private AndroidSupashipNetwork(NetworkSettings settings, Executor executor) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.executor = Objects.requireNonNull(executor, "executor");
     }
@@ -35,14 +35,14 @@ public final class AndroidSupaNetwork {
     /**
      * @throws IllegalArgumentException if {@code config.networkSettings()} does not equal {@link #settings()}
      */
-    public @NotNull SupaClient client(@NotNull SupaClientConfig config) {
+    public @NotNull SupashipClient client(@NotNull SupashipClientConfig config) {
         Objects.requireNonNull(config, "config");
         if (!config.networkSettings().equals(settings)) {
             throw new IllegalArgumentException(
-                    "SupaClientConfig.networkSettings() must match AndroidSupaNetwork.settings(); "
-                            + "use SupaClientConfig.builder().networkSettings(network.settings()) when building config.");
+                    "SupashipClientConfig.networkSettings() must match AndroidSupashipNetwork.settings(); "
+                            + "use SupashipClientConfig.builder().networkSettings(network.settings()) when building config.");
         }
-        return new SupaClient(config, new AndroidEvaluateTransport(executor));
+        return new SupashipClient(config, new AndroidEvaluateTransport(executor));
     }
 
     public static final class Builder {
@@ -78,8 +78,8 @@ public final class AndroidSupaNetwork {
             return this;
         }
 
-        public @NotNull AndroidSupaNetwork build() {
-            return new AndroidSupaNetwork(inner.build(), executor);
+        public @NotNull AndroidSupashipNetwork build() {
+            return new AndroidSupashipNetwork(inner.build(), executor);
         }
     }
 }

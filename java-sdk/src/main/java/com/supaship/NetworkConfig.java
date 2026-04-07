@@ -8,10 +8,10 @@ import java.time.Duration;
 import java.util.Objects;
 
 /**
- * JVM network layer: {@link NetworkSettings} plus a shared {@link HttpClient} for {@link SupaClient}.
+ * JVM network layer: {@link NetworkSettings} plus a shared {@link HttpClient} for {@link SupashipClient}.
  *
- * <p>Build a {@link SupaClient} with {@link #client(SupaClientConfig)} after aligning
- * {@link SupaClientConfig.Builder#networkSettings(NetworkSettings)} with {@link #settings()}.
+ * <p>Build a {@link SupashipClient} with {@link #client(SupashipClientConfig)} after aligning
+ * {@link SupashipClientConfig.Builder#networkSettings(NetworkSettings)} with {@link #settings()}.
  */
 public final class NetworkConfig {
 
@@ -29,7 +29,7 @@ public final class NetworkConfig {
 
     /**
      * Default {@link HttpClient} and the given settings (typical when the SDK key config already carries
-     * {@link SupaClientConfig#networkSettings()}).
+     * {@link SupashipClientConfig#networkSettings()}).
      */
     public static @NotNull NetworkConfig fromSettings(@NotNull NetworkSettings settings) {
         Objects.requireNonNull(settings, "settings");
@@ -47,14 +47,14 @@ public final class NetworkConfig {
     /**
      * @throws IllegalArgumentException if {@code config.networkSettings()} does not equal {@link #settings()}
      */
-    public @NotNull SupaClient client(@NotNull SupaClientConfig config) {
+    public @NotNull SupashipClient client(@NotNull SupashipClientConfig config) {
         Objects.requireNonNull(config, "config");
         if (!config.networkSettings().equals(settings)) {
             throw new IllegalArgumentException(
-                    "SupaClientConfig.networkSettings() must match NetworkConfig.settings(); "
-                            + "use SupaClientConfig.builder().networkSettings(network.settings()) when building config.");
+                    "SupashipClientConfig.networkSettings() must match NetworkConfig.settings(); "
+                            + "use SupashipClientConfig.builder().networkSettings(network.settings()) when building config.");
         }
-        return new SupaClient(config, new JavaEvaluateTransport(httpClient));
+        return new SupashipClient(config, new JavaEvaluateTransport(httpClient));
     }
 
     public static final class Builder {

@@ -10,7 +10,7 @@ public final class RetryConfig {
     private final long backoffMs;
 
     /**
-     * Defines how many times {@link SupaClient} may repeat a failed evaluate call and how long to wait between tries.
+     * Defines how many times {@link SupashipClient} may repeat a failed evaluate call and how long to wait between tries.
      *
      * @param enabled      whether retries run after failures
      * @param maxAttempts  total attempts including the first try; must be ≥ 1

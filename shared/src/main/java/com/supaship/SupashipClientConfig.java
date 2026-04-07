@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Configuration for {@link SupaClient}. Immutable after {@link Builder#build()}. */
-public final class SupaClientConfig {
+/** Configuration for {@link SupashipClient}. Immutable after {@link Builder#build()}. */
+public final class SupashipClientConfig {
 
     private final String sdkKey;
     private final String environment;
@@ -20,9 +20,9 @@ public final class SupaClientConfig {
     private final Map<String, Object> context;
     private final Set<String> sensitiveContextProperties;
     private final NetworkSettings networkSettings;
-    private final List<SupaClientListener> listeners;
+    private final List<SupashipClientListener> listeners;
 
-    private SupaClientConfig(Builder b) {
+    private SupashipClientConfig(Builder b) {
         this.sdkKey = b.sdkKey;
         this.environment = b.environment;
         this.features = Collections.unmodifiableMap(new HashMap<>(b.features));
@@ -74,7 +74,7 @@ public final class SupaClientConfig {
 
     /**
      * Endpoints, timeouts, and retry policy for evaluation HTTP calls. Transport implementation is chosen when
-     * constructing {@link SupaClient} (for example {@code JavaEvaluateTransport} or {@code AndroidEvaluateTransport}).
+     * constructing {@link SupashipClient} (for example {@code JavaEvaluateTransport} or {@code AndroidEvaluateTransport}).
      */
     @NotNull
     public NetworkSettings networkSettings() {
@@ -82,11 +82,11 @@ public final class SupaClientConfig {
     }
 
     @NotNull
-    public List<SupaClientListener> listeners() {
+    public List<SupashipClientListener> listeners() {
         return listeners;
     }
 
-    /** Fluent builder for {@link SupaClientConfig}; {@link #build()} validates required fields. */
+    /** Fluent builder for {@link SupashipClientConfig}; {@link #build()} validates required fields. */
     public static final class Builder {
 
         public Builder() {}
@@ -97,7 +97,7 @@ public final class SupaClientConfig {
         private Map<String, Object> context;
         private Set<String> sensitiveContextProperties = new HashSet<>();
         private NetworkSettings networkSettings;
-        private final List<SupaClientListener> listeners = new ArrayList<>();
+        private final List<SupashipClientListener> listeners = new ArrayList<>();
 
         @NotNull
         public Builder sdkKey(@Nullable String sdkKey) {
@@ -155,7 +155,7 @@ public final class SupaClientConfig {
         }
 
         @NotNull
-        public Builder addListener(@Nullable SupaClientListener listener) {
+        public Builder addListener(@Nullable SupashipClientListener listener) {
             if (listener != null) {
                 this.listeners.add(listener);
             }
@@ -163,14 +163,14 @@ public final class SupaClientConfig {
         }
 
         @NotNull
-        public SupaClientConfig build() {
+        public SupashipClientConfig build() {
             if (sdkKey == null || sdkKey.isBlank()) {
                 throw new IllegalStateException("sdkKey is required");
             }
             if (environment == null || environment.isBlank()) {
                 throw new IllegalStateException("environment is required");
             }
-            return new SupaClientConfig(this);
+            return new SupashipClientConfig(this);
         }
     }
 }

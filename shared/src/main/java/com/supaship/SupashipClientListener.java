@@ -7,7 +7,7 @@ import java.util.Map;
  * Optional hooks mirroring the JavaScript SDK plugin extension points (subset). All methods have
  * default no-op implementations; exceptions thrown from a listener are ignored so evaluation always proceeds.
  */
-public interface SupaClientListener {
+public interface SupashipClientListener {
 
     /**
      * Called before a batch evaluation request is sent (after context merge).
@@ -63,7 +63,7 @@ public interface SupaClientListener {
      * Called once per feature when a configured local fallback is returned instead of a remote value.
      *
      * @param featureName    feature for which a configured fallback was returned
-     * @param fallbackValue  value from {@link SupaClientConfig#features()}
+     * @param fallbackValue  value from {@link SupashipClientConfig#features()}
      * @param error          underlying error from the network or API
      */
     default void onFallbackUsed(String featureName, Object fallbackValue, Throwable error) {}
