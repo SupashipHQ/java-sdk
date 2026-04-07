@@ -19,7 +19,7 @@ public final class SupaClientConfig {
     private final Map<String, Object> features;
     private final Map<String, Object> context;
     private final Set<String> sensitiveContextProperties;
-    private final NetworkConfig networkConfig;
+    private final NetworkSettings networkSettings;
     private final List<SupaClientListener> listeners;
 
     private SupaClientConfig(Builder b) {
@@ -32,7 +32,8 @@ public final class SupaClientConfig {
                         : Collections.unmodifiableMap(new HashMap<>(b.context));
         this.sensitiveContextProperties =
                 Collections.unmodifiableSet(new HashSet<>(b.sensitiveContextProperties));
-        this.networkConfig = b.networkConfig != null ? b.networkConfig : NetworkConfig.builder().build();
+        this.networkSettings =
+                b.networkSettings != null ? b.networkSettings : NetworkSettings.builder().build();
         this.listeners = Collections.unmodifiableList(new ArrayList<>(b.listeners));
     }
 
@@ -46,71 +47,40 @@ public final class SupaClientConfig {
         return new Builder();
     }
 
-    /**
-     * Credential passed as {@code Authorization: Bearer} to Supaship APIs.
-     *
-     * @return Supaship SDK key (Bearer token for the API)
-     */
     @NotNull
     public String sdkKey() {
         return sdkKey;
     }
 
-    /**
-     * Logical target environment for flag evaluation.
-     *
-     * @return environment name sent to the evaluate API (e.g. production, staging)
-     */
     @NotNull
     public String environment() {
         return environment;
     }
 
-    /**
-     * Fallback values keyed by feature name (same role as {@code features} in the JS SDK).
-     *
-     * @return unmodifiable map of feature name to local default when the network or API cannot be used
-     */
     @NotNull
     public Map<String, Object> features() {
         return features;
     }
 
-    /**
-     * Default evaluation context merged into each request unless overridden per call.
-     *
-     * @return unmodifiable map; may be empty
-     */
     @NotNull
     public Map<String, Object> context() {
         return context;
     }
 
-    /**
-     * Property names whose values are replaced with a SHA-256 hex digest before sending to the API.
-     *
-     * @return unmodifiable set of context keys to hash
-     */
     @NotNull
     public Set<String> sensitiveContextProperties() {
         return sensitiveContextProperties;
     }
 
     /**
-     * Transport layer settings for feature evaluation calls.
-     *
-     * @return endpoints, timeouts, retry policy, and HTTP client used by {@link SupaClient}
+     * Endpoints, timeouts, and retry policy for evaluation HTTP calls. Transport implementation is chosen when
+     * constructing {@link SupaClient} (for example {@code JavaEvaluateTransport} or {@code AndroidEvaluateTransport}).
      */
     @NotNull
-    public NetworkConfig networkConfig() {
-        return networkConfig;
+    public NetworkSettings networkSettings() {
+        return networkSettings;
     }
 
-    /**
-     * Extension hooks registered for this client.
-     *
-     * @return unmodifiable list of hooks invoked around requests and fallbacks
-     */
     @NotNull
     public List<SupaClientListener> listeners() {
         return listeners;
@@ -119,7 +89,6 @@ public final class SupaClientConfig {
     /** Fluent builder for {@link SupaClientConfig}; {@link #build()} validates required fields. */
     public static final class Builder {
 
-        /** Starts with empty features, listeners, and no default context until set. */
         public Builder() {}
 
         private String sdkKey;
@@ -127,39 +96,21 @@ public final class SupaClientConfig {
         private Map<String, Object> features = new HashMap<>();
         private Map<String, Object> context;
         private Set<String> sensitiveContextProperties = new HashSet<>();
-        private NetworkConfig networkConfig;
+        private NetworkSettings networkSettings;
         private final List<SupaClientListener> listeners = new ArrayList<>();
 
-        /**
-         * Sets the Supaship SDK key.
-         *
-         * @param sdkKey Supaship SDK key; required and must not be blank at {@link #build()}
-         * @return this builder
-         */
         @NotNull
         public Builder sdkKey(@Nullable String sdkKey) {
             this.sdkKey = sdkKey;
             return this;
         }
 
-        /**
-         * Sets the environment name included in evaluate requests.
-         *
-         * @param environment environment name sent on evaluate requests; required at {@link #build()}
-         * @return this builder
-         */
         @NotNull
         public Builder environment(@Nullable String environment) {
             this.environment = environment;
             return this;
         }
 
-        /**
-         * Replaces feature fallbacks with the given map (null clears to empty).
-         *
-         * @param features map of feature name to local default value
-         * @return this builder
-         */
         @NotNull
         public Builder features(@Nullable Map<String, ?> features) {
             this.features.clear();
@@ -171,12 +122,6 @@ public final class SupaClientConfig {
             return this;
         }
 
-        /**
-         * Sets the default evaluation context ({@code null} means no default context).
-         *
-         * @param context default context entries merged into each evaluation unless overridden
-         * @return this builder
-         */
         @NotNull
         public Builder context(@Nullable Map<String, ?> context) {
             if (context == null) {
@@ -190,12 +135,6 @@ public final class SupaClientConfig {
             return this;
         }
 
-        /**
-         * Keys in the evaluation context whose raw values must not be sent over the wire (raw values are hashed).
-         *
-         * @param sensitiveContextProperties set of property names; null clears the set
-         * @return this builder
-         */
         @NotNull
         public Builder sensitiveContextProperties(@Nullable Set<String> sensitiveContextProperties) {
             this.sensitiveContextProperties.clear();
@@ -206,23 +145,15 @@ public final class SupaClientConfig {
         }
 
         /**
-         * Overrides HTTP endpoints, timeouts, retry behavior, and the {@link java.net.http.HttpClient} instance.
-         *
-         * @param networkConfig optional; if null, {@link NetworkConfig#builder()}{@code .build()} defaults are used
-         * @return this builder
+         * Network settings for evaluate requests. When omitted, {@link NetworkSettings#builder()}{@code .build()}
+         * defaults apply.
          */
         @NotNull
-        public Builder networkConfig(@Nullable NetworkConfig networkConfig) {
-            this.networkConfig = networkConfig;
+        public Builder networkSettings(@Nullable NetworkSettings networkSettings) {
+            this.networkSettings = networkSettings;
             return this;
         }
 
-        /**
-         * Registers a listener (ignored if null). Order is preserved for notification callbacks.
-         *
-         * @param listener hook implementation; may be null (no-op)
-         * @return this builder
-         */
         @NotNull
         public Builder addListener(@Nullable SupaClientListener listener) {
             if (listener != null) {
@@ -231,12 +162,6 @@ public final class SupaClientConfig {
             return this;
         }
 
-        /**
-         * Validates required fields and returns an immutable configuration.
-         *
-         * @return immutable configuration
-         * @throws IllegalStateException if {@code sdkKey} or {@code environment} is null or blank
-         */
         @NotNull
         public SupaClientConfig build() {
             if (sdkKey == null || sdkKey.isBlank()) {

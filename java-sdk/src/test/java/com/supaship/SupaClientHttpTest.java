@@ -64,18 +64,19 @@ class SupaClientHttpTest {
 
         Map<String, Object> features = new HashMap<>();
         features.put("dark-mode", false);
+        NetworkConfig net =
+                NetworkConfig.builder()
+                        .featuresApiUrl(baseUrl)
+                        .retry(new RetryConfig(false, 1, 0))
+                        .build();
         SupaClientConfig cfg =
                 SupaClientConfig.builder()
                         .sdkKey("test-key")
                         .environment("staging")
                         .features(features)
-                        .networkConfig(
-                                NetworkConfig.builder()
-                                        .featuresApiUrl(baseUrl)
-                                        .retry(new RetryConfig(false, 1, 0))
-                                        .build())
+                        .networkSettings(net.settings())
                         .build();
-        SupaClient client = new SupaClient(cfg);
+        SupaClient client = net.client(cfg);
         Map<String, Object> out = client.getFeatures(List.of("dark-mode")).get();
         assertEquals(true, out.get("dark-mode"));
         String req = requestBody.get();
@@ -99,18 +100,19 @@ class SupaClientHttpTest {
 
         Map<String, Object> features = new HashMap<>();
         features.put("x", false);
+        NetworkConfig net =
+                NetworkConfig.builder()
+                        .featuresApiUrl(baseUrl)
+                        .retry(new RetryConfig(false, 1, 0))
+                        .build();
         SupaClientConfig cfg =
                 SupaClientConfig.builder()
                         .sdkKey("k")
                         .environment("e")
                         .features(features)
-                        .networkConfig(
-                                NetworkConfig.builder()
-                                        .featuresApiUrl(baseUrl)
-                                        .retry(new RetryConfig(false, 1, 0))
-                                        .build())
+                        .networkSettings(net.settings())
                         .build();
-        SupaClient client = new SupaClient(cfg);
+        SupaClient client = net.client(cfg);
         Map<String, Object> out = client.getFeatures(List.of("x")).get();
         assertEquals(false, out.get("x"));
     }
@@ -136,18 +138,19 @@ class SupaClientHttpTest {
                         });
 
         Map<String, Object> features = Map.of("f", false);
+        NetworkConfig net =
+                NetworkConfig.builder()
+                        .featuresApiUrl(baseUrl)
+                        .retry(new RetryConfig(true, 3, 1L))
+                        .build();
         SupaClientConfig cfg =
                 SupaClientConfig.builder()
                         .sdkKey("k")
                         .environment("e")
                         .features(features)
-                        .networkConfig(
-                                NetworkConfig.builder()
-                                        .featuresApiUrl(baseUrl)
-                                        .retry(new RetryConfig(true, 3, 1L))
-                                        .build())
+                        .networkSettings(net.settings())
                         .build();
-        SupaClient client = new SupaClient(cfg);
+        SupaClient client = net.client(cfg);
         assertEquals(true, client.getFeature("f").get());
         assertEquals(2, hits.get());
     }
@@ -172,6 +175,11 @@ class SupaClientHttpTest {
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("email", "secret@test");
         Map<String, Object> features = Map.of("f", 0);
+        NetworkConfig net =
+                NetworkConfig.builder()
+                        .featuresApiUrl(baseUrl)
+                        .retry(new RetryConfig(false, 1, 0))
+                        .build();
         SupaClientConfig cfg =
                 SupaClientConfig.builder()
                         .sdkKey("k")
@@ -179,13 +187,9 @@ class SupaClientHttpTest {
                         .features(features)
                         .context(ctx)
                         .sensitiveContextProperties(java.util.Set.of("email"))
-                        .networkConfig(
-                                NetworkConfig.builder()
-                                        .featuresApiUrl(baseUrl)
-                                        .retry(new RetryConfig(false, 1, 0))
-                                        .build())
+                        .networkSettings(net.settings())
                         .build();
-        SupaClient client = new SupaClient(cfg);
+        SupaClient client = net.client(cfg);
         assertEquals(1L, client.getFeature("f").get());
         String req = requestBody.get();
         assertNotNull(req);

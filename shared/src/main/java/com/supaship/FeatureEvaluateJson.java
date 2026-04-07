@@ -20,7 +20,7 @@ import java.util.Map;
  * <p>Request shape: {@code { "environment", "features": [...], "context": { ... } }}.
  * Response shape: {@code { "features": { "name": { "variation": ... } } }}.
  */
-final class FeatureEvaluateJson {
+public final class FeatureEvaluateJson {
 
     private static final Gson GSON =
             new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
@@ -33,7 +33,7 @@ final class FeatureEvaluateJson {
      * @param context       context object (may contain hashed sensitive fields)
      * @return JSON POST body for the evaluate endpoint
      */
-    static String buildEvaluateRequest(
+    public static String buildEvaluateRequest(
             String environment, List<String> featureNames, Map<String, Object> context) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("environment", environment);
@@ -51,7 +51,7 @@ final class FeatureEvaluateJson {
      * @throws IllegalArgumentException if the JSON root or {@code features} object is missing or malformed
      * @throws JsonParseException        if the string is not valid JSON (propagated from Gson)
      */
-    static Map<String, Object> parseEvaluateResponse(String json) {
+    public static Map<String, Object> parseEvaluateResponse(String json) {
         JsonElement rootEl;
         try {
             rootEl = JsonParser.parseString(json);

@@ -15,6 +15,7 @@
 
     <modules>
         <module>java-sdk</module>
+        <module>android-sdk</module>
     </modules>
 
     <licenses>

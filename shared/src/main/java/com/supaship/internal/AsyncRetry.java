@@ -120,29 +120,14 @@ public final class AsyncRetry {
             this.willRetry = willRetry;
         }
 
-        /**
-         * Which try in the sequence failed.
-         *
-         * @return 1-based attempt number that produced {@link #error()}
-         */
         public int attempt() {
             return attempt;
         }
 
-        /**
-         * Failure that triggered this notification.
-         *
-         * @return the throwable from the failed attempt
-         */
         public Throwable error() {
             return error;
         }
 
-        /**
-         * Indicates whether {@link AsyncRetry#runWithRetry} will schedule another attempt.
-         *
-         * @return whether a follow-up attempt will run
-         */
         public boolean willRetry() {
             return willRetry;
         }

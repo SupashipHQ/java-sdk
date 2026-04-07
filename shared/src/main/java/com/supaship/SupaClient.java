@@ -5,9 +5,6 @@ import com.supaship.internal.AsyncRetry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -28,7 +25,8 @@ import java.util.stream.Collectors;
  * the Supaship HTTP API with the same defaults (URLs, retry, timeout) and the same fallback rules
  * when the network fails.
  *
- * <p>Requires Java 11+ ({@link java.net.http.HttpClient}) and Gson for JSON request/response bodies.
+ * <p>Pass a platform {@link EvaluateTransport} ({@code java.net.http} on the JVM, {@link java.net.HttpURLConnection}-based
+ * on Android, or a test double).
  *
  * <p>Safe to use from Kotlin; nullability is annotated for Kotlin interop.
  */
@@ -40,46 +38,34 @@ public final class SupaClient {
     private final Object contextLock = new Object();
     private final Map<String, Object> defaultContext;
     private final Set<String> sensitiveContextProperties;
-    private final NetworkConfig network;
+    private final NetworkSettings network;
+    private final EvaluateTransport transport;
     private final List<SupaClientListener> listeners;
     private final String clientId;
 
     /**
-     * Creates a client from an immutable configuration (SDK key, environment, fallbacks, network, listeners).
-     *
-     * @param config non-null client configuration from {@link SupaClientConfig.Builder#build()}
+     * @param config    non-null client configuration from {@link SupaClientConfig.Builder#build()}
+     * @param transport non-null HTTP implementation for evaluate POSTs
      */
-    public SupaClient(@NotNull SupaClientConfig config) {
+    public SupaClient(@NotNull SupaClientConfig config, @NotNull EvaluateTransport transport) {
         Objects.requireNonNull(config, "config");
+        Objects.requireNonNull(transport, "transport");
         this.sdkKey = config.sdkKey();
         this.environment = config.environment();
         this.featureDefinitions = new HashMap<>(config.features());
         this.defaultContext = new HashMap<>(config.context());
         this.sensitiveContextProperties = config.sensitiveContextProperties();
-        this.network = config.networkConfig();
+        this.network = config.networkSettings();
+        this.transport = transport;
         this.listeners = new ArrayList<>(config.listeners());
         this.clientId = generateClientId();
     }
 
-    /**
-     * Stable per-instance id (same idea as the JS client for listeners/telemetry).
-     *
-     * @return non-null identifier unique to this client instance
-     */
     @NotNull
     public String clientId() {
         return clientId;
     }
 
-    /**
-     * Updates the default evaluation context used for subsequent {@link #getFeature} / {@link #getFeatures} calls.
-     *
-     * <p>Notifies {@link SupaClientListener#onContextUpdate(Map, Map, String)} with reason {@code "updateContext"}.
-     *
-     * @param context           map to apply; {@code null} is treated as an empty map
-     * @param mergeWithExisting when {@code true}, keys from {@code context} overwrite or add to the existing context;
-     *                          when {@code false}, the previous context is cleared first
-     */
     public void updateContext(@Nullable Map<String, ?> context, boolean mergeWithExisting) {
         Map<String, ?> toApply = context == null ? Map.of() : context;
         Map<String, Object> oldSnapshot;
@@ -98,16 +84,11 @@ public final class SupaClient {
             try {
                 listener.onContextUpdate(oldSnapshot, newSnapshot, "updateContext");
             } catch (Throwable ignored) {
-                // never fail core flow from a listener
+                //
             }
         }
     }
 
-    /**
-     * Returns a snapshot copy of the default evaluation context (thread-safe).
-     *
-     * @return mutable copy of the current default context; not the live backing map
-     */
     @NotNull
     public Map<String, Object> getContext() {
         synchronized (contextLock) {
@@ -115,36 +96,16 @@ public final class SupaClient {
         }
     }
 
-    /**
-     * Fallback value from the configuration map for this feature (no network call).
-     *
-     * @param featureName non-null feature key as configured in {@link SupaClientConfig.Builder#features(Map)}
-     * @return configured fallback, or {@code null} if none was defined
-     */
     @Nullable
     public Object getFeatureFallback(@NotNull String featureName) {
         return featureDefinitions.get(featureName);
     }
 
-    /**
-     * Evaluates a single feature using the default context merged with configured fallbacks on failure.
-     *
-     * @param featureName non-null feature name
-     * @return future completed with the variation, fallback, or {@code null} depending on API and config
-     * @see #getFeature(String, Map)
-     */
     @NotNull
     public CompletableFuture<@Nullable Object> getFeature(@NotNull String featureName) {
         return getFeature(featureName, null);
     }
 
-    /**
-     * Evaluates a single feature after merging {@code contextOverride} into the default context for this request.
-     *
-     * @param featureName      non-null feature name
-     * @param contextOverride optional per-request context entries (merged for this call only)
-     * @return future completed with the variation, fallback, or {@code null} depending on API and config
-     */
     @NotNull
     public CompletableFuture<@Nullable Object> getFeature(
             @NotNull String featureName, @Nullable Map<String, ?> contextOverride) {
@@ -152,28 +113,12 @@ public final class SupaClient {
         return getFeatures(one, contextOverride).thenApply(m -> m.get(featureName));
     }
 
-    /**
-     * Evaluates several features using the default context.
-     *
-     * @param featureNames non-null list of feature names (null entries are ignored)
-     * @return future map of feature name to variation or fallback; empty list yields an empty map without HTTP
-     * @see #getFeatures(List, Map)
-     */
     @NotNull
     public CompletableFuture<@NotNull Map<String, Object>> getFeatures(
             @NotNull List<String> featureNames) {
         return getFeatures(featureNames, null);
     }
 
-    /**
-     * Fetches evaluations for the given flags. On transport/HTTP/parse failure, returns fallback
-     * values from the configured feature map (same behavior as the JS SDK). If {@code featureNames}
-     * is empty, completes immediately with an empty map (no HTTP call).
-     *
-     * @param featureNames      non-null list of feature names (null entries are ignored)
-     * @param contextOverride  optional per-request context (merged into default context for this call)
-     * @return future map of feature name to evaluated value or configured fallback
-     */
     @NotNull
     public CompletableFuture<@NotNull Map<String, Object>> getFeatures(
             @NotNull List<String> featureNames, @Nullable Map<String, ?> contextOverride) {
@@ -281,19 +226,10 @@ public final class SupaClient {
             }
         }
 
-        HttpRequest request =
-                HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .timeout(network.requestTimeout())
-                        .header("Content-Type", headers.get("Content-Type"))
-                        .header("Authorization", headers.get("Authorization"))
-                        .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                        .build();
-
+        long timeoutMs = network.requestTimeoutMs();
         long startNs = System.nanoTime();
-        return network
-                .httpClient()
-                .sendAsync(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+        return transport
+                .post(url, body, headers, timeoutMs)
                 .thenApply(
                         response -> {
                             long durationMs = (System.nanoTime() - startNs) / 1_000_000L;

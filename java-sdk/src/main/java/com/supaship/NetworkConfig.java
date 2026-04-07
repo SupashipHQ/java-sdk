@@ -1,156 +1,97 @@
 package com.supaship;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Objects;
 
 /**
- * Network settings for the Supaship client. Uses {@link java.net.http.HttpClient} (Java 11+).
+ * JVM network layer: {@link NetworkSettings} plus a shared {@link HttpClient} for {@link SupaClient}.
+ *
+ * <p>Build a {@link SupaClient} with {@link #client(SupaClientConfig)} after aligning
+ * {@link SupaClientConfig.Builder#networkSettings(NetworkSettings)} with {@link #settings()}.
  */
 public final class NetworkConfig {
 
-    private final String featuresApiUrl;
-    private final String eventsApiUrl;
-    private final RetryConfig retry;
-    private final Duration requestTimeout;
+    private final NetworkSettings settings;
     private final HttpClient httpClient;
 
-    private NetworkConfig(Builder b) {
-        this.featuresApiUrl = b.featuresApiUrl;
-        this.eventsApiUrl = b.eventsApiUrl;
-        this.retry = b.retry;
-        this.requestTimeout = b.requestTimeout;
-        this.httpClient = b.httpClient != null ? b.httpClient : HttpClient.newBuilder().build();
+    private NetworkConfig(NetworkSettings settings, HttpClient httpClient) {
+        this.settings = Objects.requireNonNull(settings, "settings");
+        this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
     }
 
-    /**
-     * Starts a builder with Supaship production URLs and SDK defaults.
-     *
-     * @return builder with Supaship edge URLs, default retry policy, 10s per-request timeout, and a default {@link HttpClient}
-     */
-    public static Builder builder() {
+    public static @NotNull Builder builder() {
         return new Builder();
     }
 
     /**
-     * URL used for batched feature evaluation HTTP POSTs.
-     *
-     * @return base URL for the features evaluate API
+     * Default {@link HttpClient} and the given settings (typical when the SDK key config already carries
+     * {@link SupaClientConfig#networkSettings()}).
      */
-    public String featuresApiUrl() {
-        return featuresApiUrl;
+    public static @NotNull NetworkConfig fromSettings(@NotNull NetworkSettings settings) {
+        Objects.requireNonNull(settings, "settings");
+        return new NetworkConfig(settings, HttpClient.newHttpClient());
     }
 
-    /**
-     * URL reserved for analytics or events traffic (not used by core flag evaluation today).
-     *
-     * @return base URL for the events API (reserved for future client features)
-     */
-    public String eventsApiUrl() {
-        return eventsApiUrl;
+    public @NotNull NetworkSettings settings() {
+        return settings;
     }
 
-    /**
-     * Policy governing retries when the evaluate request fails transiently.
-     *
-     * @return retry policy applied to feature evaluation HTTP calls
-     */
-    public RetryConfig retry() {
-        return retry;
-    }
-
-    /**
-     * Upper bound for blocking on request/response I/O for a single attempt.
-     *
-     * @return timeout applied to each HTTP request body send and response wait
-     */
-    public Duration requestTimeout() {
-        return requestTimeout;
-    }
-
-    /**
-     * Shared client for all outbound calls from {@link SupaClient}.
-     *
-     * @return client used for async requests; never null
-     */
-    public HttpClient httpClient() {
+    public @NotNull HttpClient httpClient() {
         return httpClient;
     }
 
-    /** Fluent builder; defaults match the JavaScript SDK ({@link Constants}). */
+    /**
+     * @throws IllegalArgumentException if {@code config.networkSettings()} does not equal {@link #settings()}
+     */
+    public @NotNull SupaClient client(@NotNull SupaClientConfig config) {
+        Objects.requireNonNull(config, "config");
+        if (!config.networkSettings().equals(settings)) {
+            throw new IllegalArgumentException(
+                    "SupaClientConfig.networkSettings() must match NetworkConfig.settings(); "
+                            + "use SupaClientConfig.builder().networkSettings(network.settings()) when building config.");
+        }
+        return new SupaClient(config, new JavaEvaluateTransport(httpClient));
+    }
+
     public static final class Builder {
 
-        /** Initializes URLs, retry, and timeout to Supaship defaults. */
-        public Builder() {}
-
-        private String featuresApiUrl = Constants.DEFAULT_FEATURES_URL;
-        private String eventsApiUrl = Constants.DEFAULT_EVENTS_URL;
-        private RetryConfig retry = RetryConfig.defaultRetry();
-        private Duration requestTimeout = Duration.ofMillis(10_000);
+        private final NetworkSettings.Builder inner = NetworkSettings.builder();
         private HttpClient httpClient;
 
-        /**
-         * Overrides the default {@link Constants#DEFAULT_FEATURES_URL}.
-         *
-         * @param featuresApiUrl non-null evaluate API base URL
-         * @return this builder
-         */
-        public Builder featuresApiUrl(String featuresApiUrl) {
-            this.featuresApiUrl = Objects.requireNonNull(featuresApiUrl, "featuresApiUrl");
+        public @NotNull Builder featuresApiUrl(String featuresApiUrl) {
+            inner.featuresApiUrl(featuresApiUrl);
             return this;
         }
 
-        /**
-         * Overrides the default {@link Constants#DEFAULT_EVENTS_URL}.
-         *
-         * @param eventsApiUrl non-null events API base URL
-         * @return this builder
-         */
-        public Builder eventsApiUrl(String eventsApiUrl) {
-            this.eventsApiUrl = Objects.requireNonNull(eventsApiUrl, "eventsApiUrl");
+        public @NotNull Builder eventsApiUrl(String eventsApiUrl) {
+            inner.eventsApiUrl(eventsApiUrl);
             return this;
         }
 
-        /**
-         * Sets how failed evaluate requests are retried.
-         *
-         * @param retry non-null retry policy for failed feature requests
-         * @return this builder
-         */
-        public Builder retry(RetryConfig retry) {
-            this.retry = Objects.requireNonNull(retry, "retry");
+        public @NotNull Builder retry(RetryConfig retry) {
+            inner.retry(retry);
             return this;
         }
 
-        /**
-         * Sets the per-request timeout passed to {@link java.net.http.HttpRequest.Builder#timeout(Duration)}.
-         *
-         * @param requestTimeout non-null timeout per HTTP request
-         * @return this builder
-         */
-        public Builder requestTimeout(Duration requestTimeout) {
-            this.requestTimeout = Objects.requireNonNull(requestTimeout, "requestTimeout");
+        public @NotNull Builder requestTimeout(Duration requestTimeout) {
+            Objects.requireNonNull(requestTimeout, "requestTimeout");
+            inner.requestTimeoutMs(requestTimeout.toMillis());
             return this;
         }
 
-        /**
-         * Optional custom {@link HttpClient} (SSL, proxy, HTTP version). When omitted, a default client is created.
-         *
-         * @param httpClient client instance, or {@code null} to use the default
-         * @return this builder
-         */
-        public Builder httpClient(HttpClient httpClient) {
+        public @NotNull Builder httpClient(@Nullable HttpClient httpClient) {
             this.httpClient = httpClient;
             return this;
         }
 
-        /**
-         * Builds an immutable snapshot of network-related settings.
-         *
-         * @return immutable network configuration
-         */
-        public NetworkConfig build() {
-            return new NetworkConfig(this);
+        public @NotNull NetworkConfig build() {
+            NetworkSettings built = inner.build();
+            HttpClient client = httpClient != null ? httpClient : HttpClient.newHttpClient();
+            return new NetworkConfig(built, client);
         }
     }
 }
